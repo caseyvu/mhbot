@@ -7,7 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import time
+import re, requests, shutil, time, io, gzip
+from util.email_utils import send_captcha_alert_mail
 from ConfigParser import RawConfigParser
 from random import randint
 
@@ -58,37 +59,49 @@ def find_main_header(driver):
 
 def check_and_horn(driver):
     global config
+    time.sleep(5)
     try:
         while True:
-            # Check the status (envHeaderImg class)
-            main_header = find_main_header(driver)
-            if main_header == None:
-                print "Cannot find main header to horn"
+            # Check if captcha is shown
+            try:
+                captcha_img_div = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//div[@class='mousehuntPage-puzzle-form-captcha-image']")))
+                captcha_code = handle_captcha(captcha_img_div.get_attribute("style")) 
+                if captcha_code != None:
+                    driver.find_element_by_xpath("//input[@class='mousehuntPage-puzzle-form-code']").send_keys(captcha_code)
+                    driver.find_element_by_xpath("//input[@class='mousehuntPage-puzzle-form-code-button']").click()
+                    time.sleep(10)
+                    continue
+                print "ERROR handling captcha!"
                 return False
-            else:
-                main_header_class = main_header.get_attribute("class")
+            except TimeoutException:
+                pass
 
+            # Check if link to KR is shown
+            try:
+                kr_link = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//div[@class='mousehuntHud-huntersHorn-responseMessage']/a")))
+                kr_link.click()
+                continue
+            except TimeoutException:
+                pass
+
+            # Check Hunt Timer
             hunt_timer = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//span[@id='huntTimer']")))
-            if 'hornError' in main_header_class.lower():
-                print 'HORN ERROR: ' + hunt_timer.text
-                return False
-            elif 'hornResult' in main_header_class.lower():
-                print 'Got captcha!'
-                #solve_captcha(driver)
-                return False
+            if 'ready' in hunt_timer.text.lower():
+                print 'Horn now!'
+                actual_horn(driver)
             else:
-                if 'ready' in hunt_timer.text.lower():
-                    print 'Horn now!'
-                    actual_horn(driver)
-                else:
-                    print "Timer=" + hunt_timer.text
-                    time_left = seconds_left(hunt_timer.text)
+                time_left = seconds_left(hunt_timer.text)
+                # Wait for horn to be ready
+                if time_left >= 0:
                     print "Seconds left = " + str(time_left)
-                    if time_left < 0:
-                        return False
-                    else:
-                        # Wait time_left + random number of seconds
-                        time.sleep(time_left + randint(config.getint("Crawler","TIME_SLEEP_RANDOM_MIN"),config.getint("Crawler","TIME_SLEEP_RANDOM_MAX")))
+                    # Wait time_left + random number of seconds
+                    time_wait = time_left + randint(config.getint("Crawler","TIME_SLEEP_RANDOM_MIN"),config.getint("Crawler","TIME_SLEEP_RANDOM_MAX"))
+                    print "Wait for " + str(time_wait) + " seconds..."
+                    time.sleep(time_wait)
+                # Error, i.e. Out of cheese,...
+                else:
+                    print 'HORN ERROR: ' + hunt_timer.text
+                    return False
 
     except TimeoutException:
         print "Failed finding Hunt Timer"
@@ -98,8 +111,13 @@ def check_and_horn(driver):
         return True
 
 def actual_horn(driver):
-    driver.find_element_by_xpath("//div[@class='mousehuntHud-huntersHorn-container']/a").click()
-    time.sleep(5)
+    try:
+        horn_btn = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//div[@class='mousehuntHud-huntersHorn-container']/a")))
+        horn_btn.click()
+        print "Horn succeed!"
+        time.sleep(5)
+    except TimeoutException:
+        pass
 
 def seconds_left(time_string):
     try:
@@ -108,10 +126,34 @@ def seconds_left(time_string):
     except ValueError:
         print "Failed reading time left"
         return -1
-    
-def solve_captcha(driver):
-    captcha_img = driver.find_element_by_xpath("//div[@class='mousehuntPage-puzzle-form-captcha-image']")
-    print captcha_img.get_attribute("style")
+
+def handle_captcha(style_string):
+    print "Style string=[" + style_string + "]"
+    captcha_dir = 'captcha/'
+    m2 = re.search('url\(["\']([^"\')]+)["\']\)',style_string)
+    if m2 is not None:
+        print "Found match in style_string"
+        try:
+            img_url = m2.group(1)
+            print "CAPTCHA URL = [" + img_url + "]"
+            r = requests.get(img_url, stream=True)
+            compressedFile = io.BytesIO(r.raw.read())
+            decompressedFile = gzip.GzipFile(fileobj=compressedFile)
+            final_file = captcha_dir + str(int(time.time())) + ".jpeg"
+            with open(final_file, 'wb') as outfile:
+                outfile.write(decompressedFile.read())
+            del r
+
+            # Send email
+            send_captcha_alert_mail(config.get("Email","EMAIL_TO"),config.get("Email","EMAIL_FROM"),final_file)
+
+            # Wait for input
+            captcha_code = raw_input('Enter captcha code:')
+            return captcha_code
+        except Exception as e:
+            print e
+            return None
+    return None
 
 def main(config_file="config.cfg"):
     global config
@@ -124,7 +166,7 @@ def main(config_file="config.cfg"):
 
     # START BROWSER
     driver = init_driver(browser=config.get("Crawler","BROWSER"))
-    driver.maximize_window()
+    #driver.maximize_window()
 
     # Login in
     if login(driver) == False:
