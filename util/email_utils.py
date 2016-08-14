@@ -1,9 +1,13 @@
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
+import mimetypes
 from email.Utils import COMMASPACE, formatdate
-from email import Encoders
+from email.mime.multipart import MIMEMultipart
+from email import encoders
+from email.message import Message
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
 import os, time
 
 def _send_mail(to, fro, subject, text, files=[],server="localhost"):
@@ -20,6 +24,7 @@ def _send_mail(to, fro, subject, text, files=[],server="localhost"):
     msg.attach( MIMEText(text) )
 
     for f in files:
+        file_basename = os.path.basename(f)
         ctype, encoding = mimetypes.guess_type(f)
         if ctype is None or encoding is not None:
             ctype = "application/octet-stream"
@@ -45,8 +50,8 @@ def _send_mail(to, fro, subject, text, files=[],server="localhost"):
             attachment.set_payload(fp.read())
             fp.close()
             encoders.encode_base64(attachment)
-        attachment.add_header("Content-Disposition", "attachment", filename=os.path.basename(f))
-        attachment.add_header('Content-ID', '<{}>'.format(os.path.basename(f)))
+        attachment.add_header("Content-Disposition", "attachment", filename=file_basename)
+        attachment.add_header('Content-ID', '<'+file_basename+'>')
         msg.attach(attachment)
 
     smtp = smtplib.SMTP(server)

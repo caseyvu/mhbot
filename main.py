@@ -12,6 +12,8 @@ from util.email_utils import send_captcha_alert_mail
 from ConfigParser import RawConfigParser
 from random import randint
 
+import traceback
+
 TIMER_READY = 'Ready!'
 TIMER_FORMAT = '%M:%S'
 
@@ -145,13 +147,14 @@ def handle_captcha(style_string):
             del r
 
             # Send email
-            send_captcha_alert_mail(config.get("Email","EMAIL_TO"),config.get("Email","EMAIL_FROM"),final_file)
+            send_captcha_alert_mail([config.get("Email","EMAIL_TO")],config.get("Email","EMAIL_FROM"),final_file)
 
             # Wait for input
             captcha_code = raw_input('Enter captcha code:')
             return captcha_code
         except Exception as e:
-            print e
+            print "ERROR while handling captcha img file:"
+            traceback.print_exc()
             return None
     return None
 
