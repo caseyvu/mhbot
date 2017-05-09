@@ -1,5 +1,5 @@
 [Crawler]
-BROWSER=Firefox
+BROWSER=PhantomJS
 start_url=https://www.mousehuntgame.com/login.php
 TIME_SLEEP_RANDOM_MIN=15
 TIME_SLEEP_RANDOM_MAX=45

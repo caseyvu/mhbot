@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# exit if any command in this script fails
+set -e
+
+# enable bash debugging
+set -x
+
+# pipefail: the return value of a pipeline is the status of the last command
+# to exit with a non-zero status, or zero if no command exited with a non-zero status
+set -o pipefail
+
+APP_DIR=/opt/mhbot
+
+# Create log dir for supervisord
+mkdir /var/log/supervisor
+# Copy supervisord conf
+cp $APP_DIR/deploy/supervisor.conf /usr/local/etc/supervisord.conf
+
+# Start supervisord in foreground
+/usr/local/bin/supervisord -n
