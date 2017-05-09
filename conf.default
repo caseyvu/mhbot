@@ -1,0 +1,13 @@
+[Crawler]
+BROWSER=Firefox
+start_url=https://www.mousehuntgame.com/login.php
+TIME_SLEEP_RANDOM_MIN=15
+TIME_SLEEP_RANDOM_MAX=45
+
+[Credential]
+USERNAME=
+PASSWORD=
+
+[Email]
+EMAIL_TO=
+EMAIL_FROM=
