@@ -1,6 +1,6 @@
 import smtplib
 import mimetypes
-from email.Utils import COMMASPACE, formatdate
+from email.utils import COMMASPACE, formatdate
 from email.mime.multipart import MIMEMultipart
 from email import encoders
 from email.message import Message
