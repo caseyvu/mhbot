@@ -15,7 +15,7 @@ APP_DIR=/opt/mhbot
 # Create log dir for supervisord
 mkdir /var/log/supervisor
 # Copy supervisord conf
-cp $APP_DIR/deploy/supervisor.conf /usr/local/etc/supervisord.conf
+cp $APP_DIR/deploy/supervisord.conf /usr/local/etc/supervisord.conf
 
 # Start supervisord in foreground
 /usr/local/bin/supervisord -n
