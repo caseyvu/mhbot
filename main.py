@@ -4,22 +4,35 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function 
 
-from util.init_driver import init_driver
+import gzip
+import io
+import logging 
+import re
+import requests
+import shutil
+import time
+import traceback
+
+from configparser import ConfigParser
+from random import randint
+
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import re, requests, shutil, time, io, gzip
 from util.email_utils import send_captcha_alert_mail
-from configparser import ConfigParser
-from random import randint
+from util.init_driver import init_driver
 
-import traceback
 
 TIMER_READY = 'Ready!'
 TIMER_FORMAT = '%M:%S'
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s\t%(levelname)s\t%(message)s',
+)
 
 # LOGIN INTO MOUSEHUNT
 def login(driver):
@@ -38,7 +51,7 @@ def login(driver):
             username_field.send_keys(config.get("Credential","USERNAME"))
             password_field.send_keys(config.get("Credential","PASSWORD"))
         except TimeoutException:
-            print("Timeout while loading LOGIN page")
+            logging.error("Timeout while loading LOGIN page")
             return False
 
         try:
@@ -46,12 +59,12 @@ def login(driver):
             if rmbLogin.is_selected() == False:
                 rmbLogin.click()
         except NoSuchElementException:
-            print("Failed finding remember checkbox. Skip")
+            logging.error("Failed finding remember checkbox. Skip")
 
         try:
             driver.find_element_by_xpath("//button[@name='doLogin']").click()
         except NoSuchElementException:
-            print("Failed clicking on Login button")
+            logging.error("Failed clicking on Login button")
             return False
 
     return True
@@ -77,7 +90,7 @@ def check_and_horn(driver):
                     driver.find_element_by_xpath("//input[@class='mousehuntPage-puzzle-form-code-button']").click()
                     time.sleep(10)
                     continue
-                print("ERROR handling captcha!")
+                logging.info("ERROR handling captcha!")
                 return False
             except TimeoutException:
                 pass
@@ -93,34 +106,34 @@ def check_and_horn(driver):
             # Check Hunt Timer
             hunt_timer = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//span[@id='huntTimer']")))
             if 'ready' in hunt_timer.text.lower():
-                print('Horn now!')
+                logging.info('Horn now!')
                 actual_horn(driver)
             else:
                 time_left = seconds_left(hunt_timer.text)
                 # Wait for horn to be ready
                 if time_left >= 0:
-                    print("Seconds left = " + str(time_left))
+                    logging.info("Seconds left = " + str(time_left))
                     # Wait time_left + random number of seconds
                     time_wait = time_left + randint(config.getint("Crawler","TIME_SLEEP_RANDOM_MIN"),config.getint("Crawler","TIME_SLEEP_RANDOM_MAX"))
-                    print("Wait for " + str(time_wait) + " seconds...")
+                    logging.info("Wait for " + str(time_wait) + " seconds...")
                     time.sleep(time_wait)
                 # Error, i.e. Out of cheese,...
                 else:
-                    print('HORN ERROR: ' + hunt_timer.text)
+                    logging.info('HORN ERROR: ' + hunt_timer.text)
                     return False
 
     except TimeoutException:
-        print("Failed finding Hunt Timer")
+        logging.error("Failed finding Hunt Timer")
         return False
     except KeyboardInterrupt:
-        print("STOP NOW.")
+        logging.info("STOP NOW.")
         return True
 
 def actual_horn(driver):
     try:
         horn_btn = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//div[@class='mousehuntHud-huntersHorn-container']/a")))
         horn_btn.click()
-        print("Horn succeed!")
+        logging.info("Horn succeed!")
         time.sleep(5)
     except TimeoutException:
         pass
@@ -130,18 +143,18 @@ def seconds_left(time_string):
         t = time.strptime(time_string.strip(), TIMER_FORMAT)
         return (t.tm_min * 60 + t.tm_sec)
     except ValueError:
-        print("Failed reading time left")
+        logging.error("Failed reading time left: {0}".format(time_string))
         return -1
 
 def handle_captcha(style_string):
-    print("Style string=[" + style_string + "]")
+    logging.info("Style string=[" + style_string + "]")
     captcha_dir = 'captcha/'
     m2 = re.search('url\(["\']([^"\')]+)["\']\)',style_string)
     if m2 is not None:
-        print("Found match in style_string")
+        logging.info("Found match in style_string")
         try:
             img_url = m2.group(1)
-            print("CAPTCHA URL = [" + img_url + "]")
+            logging.info("CAPTCHA URL = [" + img_url + "]")
             r = requests.get(img_url, stream=True)
             compressedFile = io.BytesIO(r.raw.read())
             decompressedFile = gzip.GzipFile(fileobj=compressedFile)
@@ -157,7 +170,7 @@ def handle_captcha(style_string):
             captcha_code = raw_input('Enter captcha code:')
             return captcha_code
         except Exception as e:
-            print("ERROR while handling captcha img file:")
+            logging.error("ERROR while handling captcha img file:")
             traceback.print_exc()
             return None
     return None
@@ -191,7 +204,7 @@ if __name__ == "__main__":
     try:
         opts, args = getopt.getopt(sys.argv[1:], "c:", ["config-file="])
     except getopt.GetoptError as err:
-        print(str(err))
+        logging.error(str(err))
         sys.exit(2)
 
     for o, a in opts:
