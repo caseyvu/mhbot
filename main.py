@@ -37,7 +37,7 @@ logging.basicConfig(
 # LOGIN INTO MOUSEHUNT
 def login(driver):
     global config
-    driver.get(config.get("Crawler","START_URL"))
+    driver.get(config.get("Crawler","start_url"))
 
     # Find out if we are already logged in
     # If we are logged in, do nothing
@@ -48,8 +48,8 @@ def login(driver):
         try:
             username_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//input[@name='accountName']")))
             password_field = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//input[@name='password']")))
-            username_field.send_keys(config.get("Credential","USERNAME"))
-            password_field.send_keys(config.get("Credential","PASSWORD"))
+            username_field.send_keys(config.get("Credential","username"))
+            password_field.send_keys(config.get("Credential","password"))
         except TimeoutException:
             logging.error("Timeout while loading LOGIN page")
             return False
@@ -112,14 +112,14 @@ def check_and_horn(driver):
                 time_left = seconds_left(hunt_timer.text)
                 # Wait for horn to be ready
                 if time_left >= 0:
-                    logging.info("Seconds left = " + str(time_left))
+                    logging.info("Seconds left = {0}".format(time_left))
                     # Wait time_left + random number of seconds
-                    time_wait = time_left + randint(config.getint("Crawler","TIME_SLEEP_RANDOM_MIN"),config.getint("Crawler","TIME_SLEEP_RANDOM_MAX"))
-                    logging.info("Wait for " + str(time_wait) + " seconds...")
+                    time_wait = time_left + randint(config.getint("Crawler","time_sleep_random_min"),config.getint("Crawler","time_sleep_random_max"))
+                    logging.info("Wait for {0} seconds...".format(time_wait))
                     time.sleep(time_wait)
                 # Error, i.e. Out of cheese,...
                 else:
-                    logging.info('HORN ERROR: ' + hunt_timer.text)
+                    logging.info('HORN ERROR: {0}'.format(hunt_timer.text))
                     return False
 
     except TimeoutException:
@@ -147,14 +147,14 @@ def seconds_left(time_string):
         return -1
 
 def handle_captcha(style_string):
-    logging.info("Style string=[" + style_string + "]")
+    logging.info("Style string=[{0}]".format(style_string))
     captcha_dir = 'captcha/'
     m2 = re.search('url\((.+)\)',style_string)
     if m2 is not None:
         logging.info("Found match in style_string")
         try:
             img_url = m2.group(1)
-            logging.info("CAPTCHA URL = [" + img_url + "]")
+            logging.info("CAPTCHA URL = [{0}]".format(img_url))
             r = requests.get(img_url, stream=True)
             compressedFile = io.BytesIO(r.raw.read())
             decompressedFile = gzip.GzipFile(fileobj=compressedFile)
@@ -164,7 +164,7 @@ def handle_captcha(style_string):
             del r
 
             # Send email
-            send_captcha_alert_mail([config.get("Email","EMAIL_TO")],config.get("Email","EMAIL_FROM"),final_file)
+            send_captcha_alert_mail([config.get("Email","email_to")],config.get("Email","email_from"),final_file)
 
             # Wait for input
             captcha_code = raw_input('Enter captcha code:')
@@ -182,19 +182,19 @@ def main(config_file="config.cfg"):
     config = ConfigParser()
     config.read(config_file)
 
-    #prefered_time_slots = [parse_time_slot(tss) for tss in config.get("Personal","TIME_SLOTS").split(',')]
+    try:
+        # START BROWSER
+        driver = init_driver(browser=config.get("Crawler","browser"))
+        #driver.maximize_window()
 
-    # START BROWSER
-    driver = init_driver(browser=config.get("Crawler","BROWSER"))
-    #driver.maximize_window()
-
-    # Login in
-    if login(driver) == False:
-        return False
-    if check_and_horn(driver) == False:
-        return False
-
-    driver.quit()
+        # Login in
+        if login(driver) == False:
+            return False
+        if check_and_horn(driver) == False:
+            return False
+    finally:
+        if driver is not None:
+            driver.quit()
 
 
 if __name__ == "__main__":
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         if o in ("-c","--config-file"):
             config_file = a
         else:
-            assert False, "Unhandled option: " + o
+            assert False, "Unhandled option: {0}".format(o)
 
     main(config_file)
                                               

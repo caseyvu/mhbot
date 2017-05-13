@@ -1,13 +1,13 @@
 [Crawler]
-BROWSER=PhantomJS
+browser=PhantomJS
 start_url=https://www.mousehuntgame.com/login.php
-TIME_SLEEP_RANDOM_MIN=15
-TIME_SLEEP_RANDOM_MAX=45
+time_sleep_random_min=15
+time_sleep_random_max=45
 
 [Credential]
-USERNAME=
-PASSWORD=
+username=
+password=
 
 [Email]
-EMAIL_TO=
-EMAIL_FROM=
+email_to=
+email_from=
