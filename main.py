@@ -167,7 +167,7 @@ def handle_captcha(style_string):
             send_captcha_alert_mail([config.get("Email","email_to")],config.get("Email","email_from"),final_file)
 
             # Wait for input
-            captcha_code = raw_input('Enter captcha code:')
+            captcha_code = input('Enter captcha code:')
             return captcha_code
         except Exception as e:
             logging.error("ERROR while handling captcha img file:")
