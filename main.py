@@ -149,7 +149,7 @@ def seconds_left(time_string):
 def handle_captcha(style_string):
     logging.info("Style string=[" + style_string + "]")
     captcha_dir = 'captcha/'
-    m2 = re.search('url\((.+s)\)',style_string)
+    m2 = re.search('url\((.+)\)',style_string)
     if m2 is not None:
         logging.info("Found match in style_string")
         try:
