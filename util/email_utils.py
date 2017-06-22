@@ -19,7 +19,7 @@ def _send_mail(to, smtp_settings, subject, text, files=[]):
     server = smtp_settings['server']
 
     msg = MIMEMultipart()
-    msg['From'] = fro
+    msg['From'] = from_addr
     msg['To'] = COMMASPACE.join(to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
