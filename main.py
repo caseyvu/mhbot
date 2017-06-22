@@ -159,11 +159,11 @@ def handle_captcha(style_string):
             jpeg_file = captcha_dir + str(int(time.time())) + ".jpeg"
             with open(jpeg_file, 'wb') as outfile:
                 r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f) 
-            def r
+                shutil.copyfileobj(r.raw, outfile) 
+            del r
 
             # Send email
-            send_captcha_alert_mail([config.get("Email","email_to")],config.get("Email","email_from"),jpeg_file)
+            send_captcha_alert_mail([config.get("Email","email_to")], emails_settings, jpeg_file)
 
             # Wait for input
             captcha_code = input('Enter captcha code:')
@@ -176,10 +176,16 @@ def handle_captcha(style_string):
 
 def main(config_file="config.cfg"):
     global config
+    global emails_settings
 
     # GET CONFIG
     config = ConfigParser()
     config.read(config_file)
+
+    emails_settings = dict()
+    emails_settings['server'] = config.get("Email","smtp_server")
+    emails_settings['address'] = config.get("Email","email_from")
+    emails_settings['password'] = config.get("Email","email_password")
 
     try:
         # START BROWSER

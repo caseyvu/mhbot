@@ -11,3 +11,5 @@ password=
 [Email]
 email_to=
 email_from=
+email_password=
+smtp_server=smtp.gmail.com:587

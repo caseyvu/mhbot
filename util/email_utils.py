@@ -10,10 +10,13 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 import os, time
 
-def _send_mail(to, fro, subject, text, files=[],server="localhost"):
+def _send_mail(to, smtp_settings, subject, text, files=[]):
     assert type(to)==list
     assert type(files)==list
 
+    from_addr = smtp_settings['address']
+    password = smtp_settings['password']
+    server = smtp_settings['server']
 
     msg = MIMEMultipart()
     msg['From'] = fro
@@ -55,14 +58,21 @@ def _send_mail(to, fro, subject, text, files=[],server="localhost"):
         msg.attach(attachment)
 
     smtp = smtplib.SMTP(server)
-    smtp.sendmail(fro, to, msg.as_string() )
-    smtp.close()
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login(from_addr, password)
+    smtp.sendmail(from_addr, to, msg.as_string() )
+    smtp.quit()
 
-def send_captcha_alert_mail(to, fro, captcha_file):
+def send_captcha_alert_mail(to, email_settings, captcha_file):
     subject = "[MouseHunt] Got captcha"
     message = "See attachment. Login to server and enter code"
-    _send_mail(to, fro, subject, message, files=[captcha_file])
+    _send_mail(to, email_settings, subject, message, files=[captcha_file])
 
 # Test email:
 if __name__ == '__main__':
-    _send_mail(['vuanhthu888@gmail.com'],'cat@caseyvu.com','Test email!','Test email sent from my server')
+    smtp_settings = dict()
+    smtp_settings['server'] = 'smtp.gmail.com:587'
+    smtp_settings['password'] = ''
+    smtp_settings['address'] = ''
+    _send_mail(['vuanhthu888@gmail.com'],smtp_settings,'Test email!','Test email sent from my server')
