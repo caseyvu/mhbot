@@ -156,15 +156,14 @@ def handle_captcha(style_string):
             img_url = m2.group(1)
             logging.info("CAPTCHA URL = [{0}]".format(img_url))
             r = requests.get(img_url, stream=True)
-            compressedFile = io.BytesIO(r.raw.read())
-            decompressedFile = gzip.GzipFile(fileobj=compressedFile)
-            final_file = captcha_dir + str(int(time.time())) + ".jpeg"
-            with open(final_file, 'wb') as outfile:
-                outfile.write(decompressedFile.read())
-            del r
+            jpeg_file = captcha_dir + str(int(time.time())) + ".jpeg"
+            with open(jpeg_file, 'wb') as outfile:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f) 
+            def r
 
             # Send email
-            send_captcha_alert_mail([config.get("Email","email_to")],config.get("Email","email_from"),final_file)
+            send_captcha_alert_mail([config.get("Email","email_to")],config.get("Email","email_from"),jpeg_file)
 
             # Wait for input
             captcha_code = input('Enter captcha code:')
