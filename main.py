@@ -7,6 +7,7 @@ from __future__ import print_function
 import gzip
 import io
 import logging 
+import manage_hud
 import re
 import requests
 import shutil
@@ -76,7 +77,7 @@ def find_main_header(driver):
     except TimeoutException:
         return None
 
-def check_and_horn(driver):
+def check_and_horn(driver, hud_guard):
     global config
     time.sleep(5)
     try:
@@ -106,8 +107,12 @@ def check_and_horn(driver):
             # Check Hunt Timer
             hunt_timer = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//span[@id='huntTimer']")))
             if 'ready' in hunt_timer.text.lower():
+                if hud_guard:
+                    hud_data = manage_hud.before_horn(driver)
                 logging.info('Horn now!')
                 actual_horn(driver)
+                if hud_guard:
+                    manage_hud.after_horn(driver, hud_data)
             else:
                 time_left = seconds_left(hunt_timer.text)
                 # Wait for horn to be ready
@@ -174,7 +179,7 @@ def handle_captcha(style_string):
             return None
     return None
 
-def main(config_file="config.cfg"):
+def main(config_file, hud_guard):
     global config
     global emails_settings
 
@@ -195,7 +200,7 @@ def main(config_file="config.cfg"):
         # Login in
         if login(driver) == False:
             return False
-        if check_and_horn(driver) == False:
+        if check_and_horn(driver, hud_guard) == False:
             return False
     finally:
         if driver is not None:
@@ -206,8 +211,9 @@ if __name__ == "__main__":
     import getopt, sys
 
     config_file = "config.cfg"
+    hud_guard = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "c:", ["config-file="])
+        opts, args = getopt.getopt(sys.argv[1:], "c:", ["config-file=", "hud-guard"])
     except getopt.GetoptError as err:
         logging.error(str(err))
         sys.exit(2)
@@ -215,8 +221,10 @@ if __name__ == "__main__":
     for o, a in opts:
         if o in ("-c","--config-file"):
             config_file = a
+        elif o in ("--hud-guard"):
+            hud_guard = True
         else:
             assert False, "Unhandled option: {0}".format(o)
 
-    main(config_file)
+    main(config_file, hud_guard)
                                               
