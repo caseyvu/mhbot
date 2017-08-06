@@ -46,8 +46,6 @@ def _burrough_rift_mist_toggle(location_hud, data):
 	elif (prev_mist_count < mist_count and mist_count >= 18) or mist_count == 20:
 		logging.info("Stop misting.")
 		_toggle_misting(location_hud)
-	else:
-		print("No hud action")
 
 
 BEFORE_HORN_HANDLER_MAP = {
@@ -67,17 +65,25 @@ def _find_hud(driver):
 		return (None, None)
 
 def _handle_hud_before_horn(location_class, location_hud):
-	handler = BEFORE_HORN_HANDLER_MAP.get(location_class)
-	if handler:
-		data = handler(location_hud)
+	classes = location_class.split()
+	handler = filter(
+		lambda x: x is not None, 
+		map(lambda c: BEFORE_HORN_HANDLER_MAP.get(c), classes),
+	)
+	if len(handler) > 0:
+		data = handler[0](location_hud)
 		data['location_class'] = location_class
 		return data 
 	return {'location_class': location_class} 
 
 def _handle_hud_after_horn(location_class, location_hud, data):
-	handler = AFTER_HORN_HANDLER_MAP.get(location_class)
-	if handler:
-		handler(location_hud, data)
+	classes = location_class.split()
+	handler = filter(
+		lambda x: x is not None, 
+		map(lambda c: AFTER_HORN_HANDLER_MAP.get(c), classes),
+	)
+	if len(handler) > 0:
+		handler[0](location_hud, data)
 
 # Main	
 def before_horn(driver):
@@ -86,7 +92,6 @@ def before_horn(driver):
 	return data
 
 def after_horn(driver, data):
-	print("After horn")
 	location_class, location_hud = _find_hud(driver)
 
 	actual_data = dict()
