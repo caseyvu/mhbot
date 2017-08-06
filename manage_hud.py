@@ -36,6 +36,10 @@ def _burrough_rift_mist_toggle(location_hud, data):
 		logging.info("No canister left. No action needed.")
 		return
 
+	# Don't start misting when we haven't collected enough mist canister
+	if mist_count == 0 and canisters_count < 60:
+		return 
+
 	if (prev_mist_count > mist_count and mist_count <= 5) or mist_count == 0:
 		logging.info("Start misting.")
 		_toggle_misting(location_hud)
